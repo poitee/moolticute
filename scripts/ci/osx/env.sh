@@ -68,6 +68,8 @@ build_mc_cli_tools() {
     fi
 
     mkdir -p "$dest"
+    # go build runs from inside the clone, so a relative dest would land there
+    dest="$(cd "$dest" && pwd)"
     local tmp
     tmp="$(mktemp -d)"
 
