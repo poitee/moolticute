@@ -5,6 +5,11 @@ set -e
 
 OSX_SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Pinned revisions of the bundled Go CLI tools (master tips; both repos
+# are dormant, bump deliberately). Overridable for testing newer revisions.
+export MC_AGENT_REF="${MC_AGENT_REF:-30e78a776e161dda12d803b58de14ea96c739b94}"
+export MC_CLI_REF="${MC_CLI_REF:-8d2654a36cb895efbe9b753e0a006d0b44f11d9e}"
+
 export MACOS_ARCH="$(uname -m)"
 
 case "$MACOS_ARCH" in
@@ -73,11 +78,17 @@ build_mc_cli_tools() {
     local tmp
     tmp="$(mktemp -d)"
 
+    local ref
     for tool in mc-agent mc-cli; do
+        case "$tool" in
+            mc-agent) ref="$MC_AGENT_REF" ;;
+            mc-cli)   ref="$MC_CLI_REF" ;;
+        esac
         rm -rf "$tmp/$tool"
-        git clone --depth 1 "https://github.com/raoulh/$tool.git" "$tmp/$tool"
+        git clone "https://github.com/raoulh/$tool.git" "$tmp/$tool"
         (
             cd "$tmp/$tool"
+            git checkout --quiet "$ref"
             GOOS=darwin GOARCH="$GOARCH" go build -o "$dest/$tool" .
         ) || return 1
         [ -f "$dest/$tool" ] || return 1
