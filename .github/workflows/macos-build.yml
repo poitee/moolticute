@@ -19,8 +19,10 @@ jobs:
           # tags and the build dies before compiling anything
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: brew install go
+      - name: Install Go (pinned)
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
 
       - name: Install Qt 6.2.4 (pinned, official binaries)
         run: |
