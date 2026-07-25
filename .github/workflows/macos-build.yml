@@ -2,10 +2,11 @@ name: macOS build
 
 on:
   push:
-    branches: [master, feature/apple-silicon-macos]
+    branches: [master, 'feature/apple-silicon-*']
     tags: ['v*']
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -21,8 +22,8 @@ jobs:
       - name: Install dependencies
         run: brew install qt go
 
-      - name: Build
-        run: ./scripts/macos/build-local.sh
+      - name: Build and package
+        run: ./scripts/macos/build-local.sh --package
 
       - name: Verify architecture
         run: |
@@ -32,3 +33,14 @@ jobs:
       - name: Run tests
         working-directory: build
         run: ./tests/tests
+
+      - name: Zip app bundle for artifact upload
+        working-directory: build
+        run: ditto -c -k --sequesterRsrc --keepParent Moolticute.app Moolticute-macos-arm64-app.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Moolticute-macos-arm64-app
+          path: build/Moolticute-macos-arm64-app.zip
+          if-no-files-found: error
