@@ -39,10 +39,21 @@ jobs:
         working-directory: build
         run: ./tests/tests
 
-      - name: Verify native architecture
+      - name: Verify native arm64 architecture
         run: |
-          file build/Moolticute.app/Contents/MacOS/moolticute
-          lipo -info build/Moolticute.app/Contents/MacOS/moolticute
+          for bin in \
+            build/Moolticute.app/Contents/MacOS/moolticute \
+            build/Moolticute.app/Contents/MacOS/moolticuted \
+            build/Moolticute.app/Contents/MacOS/cli/mc-agent \
+            build/Moolticute.app/Contents/MacOS/cli/mc-cli
+          do
+            file "$bin"
+            archs="$(lipo -archs "$bin")"
+            if [ "$archs" != "arm64" ]; then
+              echo "ERROR: $bin is '$archs', expected arm64"
+              exit 1
+            fi
+          done
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
