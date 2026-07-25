@@ -31,6 +31,27 @@ file build/Moolticute.app/Contents/MacOS/moolticute
 # Expected on Apple Silicon: Mach-O 64-bit executable arm64
 ```
 
+## Upgrading from the Intel build
+
+Quit Moolticute (and make sure the daemon is gone) **before** replacing the
+app, otherwise the new GUI can find a stale daemon record in shared memory,
+refuse to start its own daemon, and report "daemon is not running" /
+"Can't restart daemon, it was started by hand":
+
+```bash
+pkill -f moolticuted
+```
+
+Then launch the new app. A reboot also clears the stale state.
+
+Two more things to expect on a native build:
+
+- **Gatekeeper:** community builds are ad-hoc signed (not notarized), so the
+  first launch must be done via right-click → Open.
+- **Auto-updater:** the app may offer the official Intel `v1.04.0` DMG as an
+  "update". Decline it — installing it would replace the native build with
+  the Rosetta one.
+
 ## Related issues
 
 - https://github.com/mooltipass/moolticute/issues/1254

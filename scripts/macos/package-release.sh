@@ -24,8 +24,22 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
-# Ad-hoc sign so local Gatekeeper may allow after user approval (not notarized).
-codesign --force --deep --sign - "$APP_PATH" 2>/dev/null || true
+# Ad-hoc sign (not notarized). macOS refuses to run unsigned arm64 code,
+# so a signing failure must fail the build, not be swallowed. Sign nested
+# executables inner-to-outer first: --deep is deprecated and does not
+# reliably cover extra binaries in Contents/MacOS.
+for nested in \
+    "$APP_PATH/Contents/MacOS/moolticuted" \
+    "$APP_PATH/Contents/MacOS/cli/mc-agent" \
+    "$APP_PATH/Contents/MacOS/cli/mc-cli"
+do
+    if [ -f "$nested" ]; then
+        codesign --force --sign - "$nested"
+    fi
+done
+codesign --force --deep --sign - "$APP_PATH"
+codesign --verify --deep --strict "$APP_PATH"
+echo "Ad-hoc signature verified"
 
 BASENAME="${APP}-${VERSION}-macos-${ARCH}"
 DMG_PATH="$REPO_ROOT/build/${BASENAME}.dmg"
@@ -34,12 +48,23 @@ ZIP_PATH="$REPO_ROOT/build/${BASENAME}.zip"
 rm -f "$DMG_PATH" "$ZIP_PATH"
 
 echo "Creating $DMG_PATH"
-hdiutil create \
+# hdiutil intermittently fails with "Resource busy" on CI runners
+attempt=1
+until hdiutil create \
     -volname "$APP" \
     -srcfolder "$APP_PATH" \
     -ov \
     -format UDZO \
     "$DMG_PATH"
+do
+    if [ "$attempt" -ge 3 ]; then
+        echo "hdiutil create failed after $attempt attempts"
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    echo "hdiutil create failed, retrying ($attempt/3)..."
+    sleep 5
+done
 
 echo "Creating $ZIP_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
