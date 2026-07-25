@@ -24,8 +24,22 @@ if [ ! -d "$APP_PATH" ]; then
     exit 1
 fi
 
-# Ad-hoc sign so local Gatekeeper may allow after user approval (not notarized).
-codesign --force --deep --sign - "$APP_PATH" 2>/dev/null || true
+# Ad-hoc sign (not notarized). macOS refuses to run unsigned arm64 code,
+# so a signing failure must fail the build, not be swallowed. Sign nested
+# executables inner-to-outer first: --deep is deprecated and does not
+# reliably cover extra binaries in Contents/MacOS.
+for nested in \
+    "$APP_PATH/Contents/MacOS/moolticuted" \
+    "$APP_PATH/Contents/MacOS/cli/mc-agent" \
+    "$APP_PATH/Contents/MacOS/cli/mc-cli"
+do
+    if [ -f "$nested" ]; then
+        codesign --force --sign - "$nested"
+    fi
+done
+codesign --force --deep --sign - "$APP_PATH"
+codesign --verify --deep --strict "$APP_PATH"
+echo "Ad-hoc signature verified"
 
 BASENAME="${APP}-${VERSION}-macos-${ARCH}"
 DMG_PATH="$REPO_ROOT/build/${BASENAME}.dmg"
