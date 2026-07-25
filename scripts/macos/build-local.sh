@@ -58,6 +58,16 @@ fi
 
 APP=Moolticute
 cp "$SCRIPTDIR/../ci/osx/Info.plist" "$APP.app/Contents/Info.plist"
+
+# Stamp the bundle version (the template plist carries none)
+BUNDLE_VERSION="$(get_version "$REPO_ROOT" 2>/dev/null || echo v0.0.0)"
+BUNDLE_VERSION="${BUNDLE_VERSION#v}"
+PLIST="$APP.app/Contents/Info.plist"
+for key in CFBundleShortVersionString CFBundleVersion; do
+    /usr/libexec/PlistBuddy -c "Delete :$key" "$PLIST" 2>/dev/null || true
+    /usr/libexec/PlistBuddy -c "Add :$key string $BUNDLE_VERSION" "$PLIST"
+done
+
 cp moolticuted "$APP.app/Contents/MacOS/"
 
 mkdir -p "$APP.app/Contents/MacOS/cli"
