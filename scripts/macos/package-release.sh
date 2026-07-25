@@ -48,12 +48,23 @@ ZIP_PATH="$REPO_ROOT/build/${BASENAME}.zip"
 rm -f "$DMG_PATH" "$ZIP_PATH"
 
 echo "Creating $DMG_PATH"
-hdiutil create \
+# hdiutil intermittently fails with "Resource busy" on CI runners
+attempt=1
+until hdiutil create \
     -volname "$APP" \
     -srcfolder "$APP_PATH" \
     -ov \
     -format UDZO \
     "$DMG_PATH"
+do
+    if [ "$attempt" -ge 3 ]; then
+        echo "hdiutil create failed after $attempt attempts"
+        exit 1
+    fi
+    attempt=$((attempt + 1))
+    echo "hdiutil create failed, retrying ($attempt/3)..."
+    sleep 5
+done
 
 echo "Creating $ZIP_PATH"
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
