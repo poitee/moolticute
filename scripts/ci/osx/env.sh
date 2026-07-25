@@ -34,7 +34,9 @@ detect_qtdir() {
 
     for candidate in \
         "/opt/homebrew/opt/qt" \
+        "/opt/homebrew/opt/qt@6" \
         "/usr/local/opt/qt" \
+        "/usr/local/opt/qt@6" \
         "/Users/travis/Qt/6.2.4/macos" \
         "$HOME/Qt/6.2.4/macos"
     do

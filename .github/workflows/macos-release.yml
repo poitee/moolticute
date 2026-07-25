@@ -24,7 +24,13 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies
-        run: brew install qt go
+        run: brew install go
+
+      - name: Install Qt 6.2.4 (pinned, official binaries)
+        run: |
+          pipx install aqtinstall
+          aqt install-qt mac desktop 6.2.4 clang_64 -m qtwebsockets -O "$HOME/Qt"
+          echo "QTDIR=$HOME/Qt/6.2.4/macos" >> "$GITHUB_ENV"
 
       - name: Build and package app
         run: |
